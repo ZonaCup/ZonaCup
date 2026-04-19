@@ -1,20 +1,21 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 
 export async function createServerSupabase() {
-  const cookieStore = await cookies();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cookieStore = await cookies() as any;
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        getAll: () => cookieStore.getAll(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setAll: (cookiesToSet: any[]) => {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
+              cookieStore.set(name, value, options)
             );
           } catch {
             // Server Component — ignore
@@ -24,9 +25,6 @@ export async function createServerSupabase() {
     }
   );
 }
-
-// Admin client with service role (for webhooks, cron, etc.)
-import { createClient } from '@supabase/supabase-js';
 
 export function createAdminSupabase() {
   return createClient(
