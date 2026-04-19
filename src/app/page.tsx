@@ -307,7 +307,7 @@ export default function Home() {
             <div><div className="font-display text-xl font-bold text-green-400">● 847</div><div className="text-[10px] text-ash tracking-[1.5px] uppercase">Online</div></div>
             <div><div className="font-display text-xl font-bold text-ivory">28</div><div className="text-[10px] text-ash tracking-[1.5px] uppercase">Canales</div></div>
           </div>
-          <a href="https://discord.gg/TU-INVITE" target="_blank" rel="noopener noreferrer">
+          <a href="https://discord.gg/HPGKVqb6" target="_blank" rel="noopener noreferrer">
             <button className="btn-discord !px-8 !py-3.5 !text-sm">Unirme al Discord</button>
           </a>
         </div>
