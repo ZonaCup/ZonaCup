@@ -4,7 +4,7 @@ import { createTournamentPayment } from '@/lib/mercadopago';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabase();
+    const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {

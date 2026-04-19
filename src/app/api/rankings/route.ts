@@ -3,7 +3,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 
 // GET /api/rankings - Get leaderboard
 export async function GET(request: NextRequest) {
-  const supabase = createServerSupabase();
+  const supabase = await createServerSupabase();
   const url = new URL(request.url);
   const season = url.searchParams.get('season') || '1';
   const limit = parseInt(url.searchParams.get('limit') || '50');

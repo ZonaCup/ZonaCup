@@ -3,7 +3,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 
 // GET /api/tournaments - List upcoming tournaments
 export async function GET(request: NextRequest) {
-  const supabase = createServerSupabase();
+  const supabase = await createServerSupabase();
   const url = new URL(request.url);
   const status = url.searchParams.get('status') || 'upcoming';
   const format = url.searchParams.get('format'); // '2v2' or '5v5'
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/tournaments - Create tournament (admin only)
 export async function POST(request: NextRequest) {
-  const supabase = createServerSupabase();
+  const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
