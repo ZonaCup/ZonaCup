@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background: #070a0d;
+  color: #e8e2d6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(255, 106, 0, 0.3);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0c1017;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff6a00;
+}
+
+@layer components {
+  .btn-fire {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded font-bold text-sm uppercase tracking-wider text-white cursor-pointer transition-all duration-200;
+    background: linear-gradient(135deg, #c23a0a, #ff6a00);
+    box-shadow: 0 0 20px rgba(255, 106, 0, 0.25);
+  }
+  .btn-fire:hover {
+    box-shadow: 0 0 30px rgba(255, 106, 0, 0.45);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded font-bold text-sm uppercase tracking-wider cursor-pointer transition-all duration-200;
+    background: transparent;
+    border: 1px solid rgba(255, 106, 0, 0.35);
+    color: #e8e2d6;
+  }
+  .btn-ghost:hover {
+    border-color: #ff6a00;
+    color: #ff6a00;
+  }
+
+  .btn-discord {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded font-bold text-sm uppercase tracking-wider text-white cursor-pointer transition-all duration-200;
+    background: #5865f2;
+    box-shadow: 0 0 20px rgba(88, 101, 242, 0.2);
+  }
+  .btn-discord:hover {
+    box-shadow: 0 0 30px rgba(88, 101, 242, 0.4);
+  }
+
+  .card {
+    @apply rounded-md transition-all duration-300;
+    background: #111820;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .card:hover {
+    border-color: rgba(255, 106, 0, 0.2);
+  }
+
+  .section-tag {
+    font-family: 'Orbitron', sans-serif;
+    @apply text-xs tracking-[4px] uppercase mb-3;
+    color: #ff6a00;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    @apply text-5xl md:text-6xl tracking-wider uppercase leading-none mb-4;
+    color: #f5f0e8;
+  }
+
+  .fire-text {
+    color: #ff6a00;
+    text-shadow: 0 0 40px rgba(255, 106, 0, 0.4);
+  }
+
+  .progress-bar {
+    @apply h-1 rounded-full overflow-hidden;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-1000;
+    background: linear-gradient(90deg, #c23a0a, #ff6a00);
+  }
+}

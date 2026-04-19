@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Read(//c/Program Files/nodejs//**)",
+      "Read(//c/Users/mateo/AppData/Roaming/**)",
+      "Read(//c/Users/mateo/**)"
+    ]
+  }
+}
