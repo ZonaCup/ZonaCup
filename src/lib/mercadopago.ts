@@ -1,4 +1,4 @@
-import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
+import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -7,6 +7,7 @@ const client = new MercadoPagoConfig({
 interface CreatePaymentParams {
   tournamentName: string;
   tournamentId: string;
+  tournamentSlug: string;
   userId: string;
   registrationId: string;
   amount: number;
@@ -17,6 +18,7 @@ interface CreatePaymentParams {
 export async function createTournamentPayment({
   tournamentName,
   tournamentId,
+  tournamentSlug,
   userId,
   registrationId,
   amount,
@@ -30,7 +32,7 @@ export async function createTournamentPayment({
       items: [
         {
           id: `tournament-${tournamentId}`,
-          title: `Inscripción Zona Cup - ${tournamentName}`,
+          title: `Inscripcion Zona Cup - ${tournamentName}`,
           description: `Entrada al torneo ${tournamentName}`,
           quantity: 1,
           unit_price: amount,
@@ -42,14 +44,15 @@ export async function createTournamentPayment({
         name: playerName,
       },
       back_urls: {
-        success: `${process.env.NEXT_PUBLIC_BASE_URL}/torneos/${tournamentId}?payment=success`,
-        failure: `${process.env.NEXT_PUBLIC_BASE_URL}/torneos/${tournamentId}?payment=failure`,
-        pending: `${process.env.NEXT_PUBLIC_BASE_URL}/torneos/${tournamentId}?payment=pending`,
+        success: `${process.env.NEXT_PUBLIC_BASE_URL}/torneos/${tournamentSlug}?payment=success`,
+        failure: `${process.env.NEXT_PUBLIC_BASE_URL}/torneos/${tournamentSlug}?payment=failure`,
+        pending: `${process.env.NEXT_PUBLIC_BASE_URL}/torneos/${tournamentSlug}?payment=pending`,
       },
       auto_return: 'approved',
       external_reference: JSON.stringify({
         registrationId,
         tournamentId,
+        tournamentSlug,
         userId,
       }),
       notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/mercadopago`,

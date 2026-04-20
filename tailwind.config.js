@@ -33,6 +33,9 @@ module.exports = {
         'pulse-dot': 'pulse-dot 2s infinite',
         'fade-up': 'fade-up 0.6s ease forwards',
         'float-up': 'float-up 4s infinite',
+        'logo-float': 'logo-float 6s ease-in-out infinite',
+        'scanline': 'scanline 10s linear infinite',
+        'flicker-soft': 'flicker-soft 4s ease-in-out infinite',
       },
       keyframes: {
         'pulse-dot': {
@@ -48,6 +51,20 @@ module.exports = {
           '20%': { opacity: '0.6' },
           '80%': { opacity: '0.3' },
           '100%': { opacity: '0', transform: 'translateY(-100px) scale(0)' },
+        },
+        'logo-float': {
+          '0%, 100%': { transform: 'translateY(0px) scale(1)' },
+          '50%': { transform: 'translateY(-12px) scale(1.02)' },
+        },
+        'scanline': {
+          '0%': { transform: 'translateY(-100%)' },
+          '100%': { transform: 'translateY(100%)' },
+        },
+        'flicker-soft': {
+          '0%, 100%': { opacity: '1' },
+          '25%': { opacity: '0.92' },
+          '50%': { opacity: '0.97' },
+          '75%': { opacity: '0.9' },
         },
       },
     },

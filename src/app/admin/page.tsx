@@ -53,7 +53,17 @@ export default function AdminPage() {
   }
 
   async function updateStatus(id: string, status: string) {
-    await supabase.from('tournaments').update({ status }).eq('id', id);
+    const res = await fetch(`/api/tournaments/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || 'No se pudo actualizar el estado');
+    }
+
     loadTournaments();
   }
 

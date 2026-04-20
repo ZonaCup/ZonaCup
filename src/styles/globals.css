@@ -13,6 +13,9 @@ body {
   background: #070a0d;
   color: #e8e2d6;
   -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(circle at top, rgba(255, 106, 0, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 30%);
 }
 
 ::selection {
@@ -67,11 +70,13 @@ body {
 
   .card {
     @apply rounded-md transition-all duration-300;
-    background: #111820;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: linear-gradient(180deg, rgba(17, 24, 32, 0.92), rgba(11, 16, 23, 0.92));
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
   }
   .card:hover {
     border-color: rgba(255, 106, 0, 0.2);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
   }
 
   .section-tag {
@@ -98,5 +103,85 @@ body {
   .progress-fill {
     @apply h-full rounded-full transition-all duration-1000;
     background: linear-gradient(90deg, #c23a0a, #ff6a00);
+  }
+
+  .glass-panel {
+    background:
+      linear-gradient(180deg, rgba(17, 24, 32, 0.82), rgba(10, 14, 20, 0.92)),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 45%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 0 0 1px rgba(255, 106, 0, 0.08),
+      0 24px 60px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(18px);
+  }
+
+  .hero-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 90px 90px;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 95%);
+  }
+
+  .video-vignette {
+    background:
+      radial-gradient(circle at center, transparent 20%, rgba(7, 10, 13, 0.45) 60%, rgba(7, 10, 13, 0.9) 100%),
+      linear-gradient(180deg, rgba(7, 10, 13, 0.4) 0%, rgba(7, 10, 13, 0.7) 100%);
+  }
+
+  .logo-frame {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .logo-frame::after {
+    content: '';
+    position: absolute;
+    inset: -120% 25%;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+    transform: rotate(14deg);
+    animation: scanline 10s linear infinite;
+    pointer-events: none;
+  }
+
+  .fire-ring {
+    box-shadow:
+      0 0 0 1px rgba(255, 106, 0, 0.12),
+      0 0 40px rgba(255, 106, 0, 0.18),
+      inset 0 0 50px rgba(255, 106, 0, 0.08);
+  }
+
+  .hero-logo-panel {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 38%, rgba(255, 106, 0, 0.12), transparent 30%),
+      radial-gradient(circle at 50% 100%, rgba(255, 106, 0, 0.08), transparent 42%),
+      linear-gradient(180deg, rgba(16, 22, 30, 0.98), rgba(9, 13, 19, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      inset 0 -20px 60px rgba(0, 0, 0, 0.3),
+      0 18px 40px rgba(0, 0, 0, 0.22);
+  }
+
+  .hero-logo-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.025), transparent 28%),
+      radial-gradient(circle at top, rgba(255, 255, 255, 0.03), transparent 55%);
+    pointer-events: none;
+  }
+
+  .hero-logo-panel::after {
+    content: '';
+    position: absolute;
+    inset: 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.035);
+    pointer-events: none;
   }
 }

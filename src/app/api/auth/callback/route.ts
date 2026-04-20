@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
+  const next = requestUrl.searchParams.get('next') || '/perfil';
 
   if (code) {
     const cookieStore = await cookies();
@@ -13,12 +14,9 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           getAll: () => (cookieStore as any).getAll(),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setAll: (cookiesToSet: any[]) => {
             cookiesToSet.forEach(({ name, value, options }) =>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (cookieStore as any).set(name, value, options)
             );
           },
@@ -29,5 +27,5 @@ export async function GET(request: NextRequest) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(new URL('/perfil', request.url));
+  return NextResponse.redirect(new URL(next, request.url));
 }

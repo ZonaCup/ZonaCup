@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Zona Cup · Torneos VALORANT LATAM',
     description: 'El circuito competitivo más serio de VALORANT en LATAM. Premios reales, ranking oficial, operación profesional.',
-    images: ['/logo.png'],
+    images: ['/zona-cup-logo-gaming.png'],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Zona Cup · Torneos VALORANT LATAM',
     description: 'Torneos 2v2 y 5v5 todas las semanas. Premios en 48hs.',
-    images: ['/logo.png'],
+    images: ['/zona-cup-logo-gaming.png'],
   },
 };
 

@@ -6,3 +6,8 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+.next-dev.log
+.next-dev.err.log
+
+.vercel
+.env*.local
