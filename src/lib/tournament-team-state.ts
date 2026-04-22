@@ -172,8 +172,13 @@ export async function getTournamentTeamState(
     const isReady =
       isPaid &&
       registrationMembers.length === requiredTeamSize &&
-      registrationInvites.length === requiredTeamSize - 1 &&
-      acceptedCount === requiredTeamSize - 1;
+      (
+        registrationInvites.length === 0 ||
+        (
+          registrationInvites.length === requiredTeamSize - 1 &&
+          acceptedCount === requiredTeamSize - 1
+        )
+      );
 
     return {
       registrationId: registration.id,

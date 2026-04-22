@@ -72,6 +72,15 @@ type Match = {
   winner: { id: string; name: string } | null;
 };
 
+type PlayerOption = {
+  id: string;
+  display_name?: string | null;
+  discord_username?: string | null;
+  riot_id?: string | null;
+  riot_tag?: string | null;
+  rank?: string | null;
+};
+
 const emptyForm = {
   name: '',
   slug: '',
@@ -106,6 +115,13 @@ export default function AdminPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [savingForm, setSavingForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [manualTeamName, setManualTeamName] = useState('');
+  const [playerQuery, setPlayerQuery] = useState('');
+  const [playerOptions, setPlayerOptions] = useState<PlayerOption[]>([]);
+  const [selectedPlayers, setSelectedPlayers] = useState<PlayerOption[]>([]);
+  const [searchingPlayers, setSearchingPlayers] = useState(false);
+  const [submittingManualEntry, setSubmittingManualEntry] = useState(false);
+  const [removingRegistrationId, setRemovingRegistrationId] = useState<string | null>(null);
 
   const selectedTournament = tournaments.find((tournament) => tournament.id === selectedTournamentId) || null;
 
@@ -117,6 +133,22 @@ export default function AdminPage() {
     if (!selectedTournamentId) return;
     void loadTournamentOps(selectedTournamentId);
   }, [selectedTournamentId]);
+
+  useEffect(() => {
+    if (!isAdmin || !selectedTournament) return;
+    const requiredPlayers = selectedTournament.format === '5v5' ? 5 : 2;
+
+    if (selectedPlayers.length >= requiredPlayers || !playerQuery.trim()) {
+      setPlayerOptions([]);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      void searchPlayers(playerQuery);
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [isAdmin, playerQuery, selectedPlayers, selectedTournament?.id]);
 
   async function checkAdmin() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -279,6 +311,75 @@ export default function AdminPage() {
     await loadTournamentOps(selectedTournamentId);
   }
 
+  async function searchPlayers(query: string) {
+    if (!selectedTournament) return;
+
+    setSearchingPlayers(true);
+    const normalized = query.trim();
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, display_name, discord_username, riot_id, riot_tag, rank')
+      .or(`display_name.ilike.%${normalized}%,discord_username.ilike.%${normalized}%,riot_id.ilike.%${normalized}%`)
+      .limit(8);
+
+    const excludedIds = new Set(selectedPlayers.map((player) => player.id));
+    setPlayerOptions(((data || []) as PlayerOption[]).filter((player) => !excludedIds.has(player.id)));
+    setSearchingPlayers(false);
+  }
+
+  async function addManualEntry() {
+    if (!selectedTournament) return;
+
+    const requiredPlayers = selectedTournament.format === '5v5' ? 5 : 2;
+    if (selectedPlayers.length !== requiredPlayers) {
+      alert(`Tenes que seleccionar ${requiredPlayers} jugadores para este torneo`);
+      return;
+    }
+
+    setSubmittingManualEntry(true);
+    const response = await fetch(`/api/tournaments/${selectedTournament.id}/entries`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memberIds: selectedPlayers.map((player) => player.id),
+        teamName: manualTeamName,
+      }),
+    });
+    const payload = await response.json();
+    setSubmittingManualEntry(false);
+
+    if (!response.ok) {
+      alert(payload.error || 'No se pudo agregar el equipo manualmente');
+      return;
+    }
+
+    setManualTeamName('');
+    setPlayerQuery('');
+    setPlayerOptions([]);
+    setSelectedPlayers([]);
+    await loadTournaments();
+    await loadTournamentOps(selectedTournament.id);
+  }
+
+  async function removeEntry(registrationId: string) {
+    if (!selectedTournament) return;
+    setRemovingRegistrationId(registrationId);
+
+    const response = await fetch(`/api/tournaments/${selectedTournament.id}/entries?registrationId=${registrationId}`, {
+      method: 'DELETE',
+    });
+    const payload = await response.json();
+    setRemovingRegistrationId(null);
+
+    if (!response.ok) {
+      alert(payload.error || 'No se pudo borrar la inscripcion');
+      return;
+    }
+
+    await loadTournaments();
+    await loadTournamentOps(selectedTournament.id);
+  }
+
   if (loading) {
     return <div className="min-h-screen bg-bg-deep" />;
   }
@@ -291,6 +392,7 @@ export default function AdminPage() {
   const readyTeams = teamBoard.filter((entry) => entry.isReady);
   const pendingAcceptance = paidTeams.filter((entry) => !entry.isReady);
   const currencyPreview = buildTournamentCurrencyPreview(Number(form.entry_fee_usd || 0), rates);
+  const requiredPlayersForSelectedTournament = selectedTournament?.format === '5v5' ? 5 : 2;
   const groupedMatches = matches.reduce<Record<number, Match[]>>((acc, match) => {
     acc[match.round] = acc[match.round] || [];
     acc[match.round].push(match);
@@ -479,6 +581,82 @@ export default function AdminPage() {
 
                 <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
                   <div className="card p-6">
+                    <div className="rounded-md border border-fire-core/20 bg-fire-core/5 p-4 mb-5">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-fire-core mb-3">Alta manual</div>
+                      <div className="text-sm text-ash mb-4">
+                        Agrega un equipo al torneo sin cobrar pago. El primer jugador queda como capitan.
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3">
+                        <input
+                          value={manualTeamName}
+                          onChange={(e) => setManualTeamName(e.target.value)}
+                          placeholder="Nombre del equipo (opcional)"
+                          className="admin-input"
+                        />
+                        <input
+                          value={playerQuery}
+                          onChange={(e) => setPlayerQuery(e.target.value)}
+                          placeholder="Buscar jugador por Discord, Riot o nombre"
+                          className="admin-input"
+                        />
+                        <button
+                          onClick={addManualEntry}
+                          disabled={submittingManualEntry || selectedPlayers.length !== requiredPlayersForSelectedTournament}
+                          className="btn-fire !py-2 !px-4 !text-xs disabled:opacity-60"
+                        >
+                          {submittingManualEntry ? 'Agregando...' : 'Agregar sin pago'}
+                        </button>
+                      </div>
+
+                      {selectedPlayers.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {selectedPlayers.map((player, index) => (
+                            <button
+                              key={player.id}
+                              type="button"
+                              onClick={() => setSelectedPlayers((current) => current.filter((item) => item.id !== player.id))}
+                              className="rounded-full border border-fire-core/30 bg-fire-core/10 px-3 py-1.5 text-xs text-fire-core"
+                            >
+                              {index === 0 ? 'Capitan: ' : ''}
+                              {player.display_name || player.discord_username || player.riot_id || 'Jugador'} ×
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-3 text-xs text-ash">
+                        {selectedPlayers.length}/{requiredPlayersForSelectedTournament} jugadores seleccionados
+                      </div>
+
+                      {searchingPlayers && <div className="mt-3 text-xs text-ash">Buscando jugadores...</div>}
+
+                      {!searchingPlayers && playerOptions.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {playerOptions.map((player) => (
+                            <button
+                              key={player.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedPlayers((current) => [...current, player]);
+                                setPlayerQuery('');
+                                setPlayerOptions([]);
+                              }}
+                              className="w-full rounded border border-white/8 bg-black/20 px-3 py-2 text-left hover:border-fire-core/30 transition-colors"
+                            >
+                              <div className="text-sm text-ivory">
+                                {player.display_name || player.discord_username || player.riot_id || 'Jugador'}
+                              </div>
+                              <div className="text-[11px] text-ash">
+                                {player.discord_username || 'Sin Discord visible'}
+                                {player.riot_id ? ` · ${player.riot_id}${player.riot_tag ? `#${player.riot_tag}` : ''}` : ''}
+                                {player.rank ? ` · ${player.rank}` : ''}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
                       <div>
                         <div className="section-tag !mb-1">Equipos</div>
@@ -509,6 +687,15 @@ export default function AdminPage() {
                               <div className={`text-sm font-semibold ${entry.isReady ? 'text-green-400' : entry.isPaid ? 'text-gold' : 'text-ash'}`}>
                                 {entry.isReady ? 'Listo' : entry.isPaid ? 'Faltan aceptaciones' : 'Pendiente de pago'}
                               </div>
+                            </div>
+                            <div className="mt-3 flex justify-end">
+                              <button
+                                onClick={() => void removeEntry(entry.registrationId)}
+                                disabled={removingRegistrationId === entry.registrationId}
+                                className="btn-ghost !py-2 !px-4 !text-xs text-red-300 disabled:opacity-60"
+                              >
+                                {removingRegistrationId === entry.registrationId ? 'Borrando...' : 'Borrar del torneo'}
+                              </button>
                             </div>
                             <div className="mt-3 flex flex-wrap gap-2">
                               {entry.members.map((member) => (
