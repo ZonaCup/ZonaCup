@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
+import { CurrencyProvider } from '@/components/CurrencyProvider';
 
 export const metadata: Metadata = {
-  title: 'Zona Cup · El circuito competitivo de VALORANT en LATAM',
+  title: 'Zona Cup · El circuito competitivo de VALO en LATAM',
   description: 'Torneos 2v2 y 5v5 de VALORANT todas las semanas. Premios pagados en 48 horas. Ranking oficial. Argentina, Chile y Perú.',
   keywords: 'valorant, torneos, esports, argentina, chile, peru, latam, 2v2, 5v5, competitivo',
   openGraph: {
@@ -26,7 +27,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <CurrencyProvider>{children}</CurrencyProvider>
+      </body>
     </html>
   );
 }

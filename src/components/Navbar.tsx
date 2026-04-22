@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
+import CurrencySwitcher from '@/components/CurrencySwitcher';
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
@@ -61,6 +62,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex gap-2 items-center">
+        <CurrencySwitcher />
         <span className="hidden lg:inline text-[11px] text-ash tracking-[0.28em] uppercase">AR · CL · PE</span>
         {user ? (
           <div className="flex items-center gap-3">

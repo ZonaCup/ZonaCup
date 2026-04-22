@@ -1,10 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-
-type TeamRef = {
-  id: string;
-  name: string;
-  tag?: string | null;
-};
+import { getReadyPlayoffTeams } from '@/lib/tournament-team-state';
 
 type MatchRecord = {
   id: string;
@@ -16,6 +11,12 @@ type MatchRecord = {
   status: string;
 };
 
+type PlayoffTeam = {
+  id: string;
+  name: string;
+  tag?: string | null;
+};
+
 const PLAYOFF_SIZE = 8;
 const FIRST_ROUND_PAIRINGS = [
   [0, 7],
@@ -23,32 +24,6 @@ const FIRST_ROUND_PAIRINGS = [
   [1, 6],
   [2, 5],
 ];
-
-async function loadApprovedTeams(supabase: SupabaseClient, tournamentId: string): Promise<TeamRef[]> {
-  const { data, error } = await supabase
-    .from('registrations')
-    .select('team_id, created_at, team:teams!registrations_team_id_fkey!inner(id, name, tag)')
-    .eq('tournament_id', tournamentId)
-    .eq('payment_status', 'approved')
-    .not('team_id', 'is', null)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const seen = new Set<string>();
-  const teams: TeamRef[] = [];
-
-  for (const row of data || []) {
-    const team = Array.isArray(row.team) ? row.team[0] : row.team;
-    if (!team?.id || seen.has(team.id)) continue;
-    seen.add(team.id);
-    teams.push({ id: team.id, name: team.name, tag: team.tag });
-  }
-
-  return teams.slice(0, PLAYOFF_SIZE);
-}
 
 async function loadMatches(supabase: SupabaseClient, tournamentId: string) {
   const { data, error } = await supabase
@@ -179,12 +154,12 @@ export async function ensureTournamentPlayoff(supabase: SupabaseClient, tourname
     return [];
   }
 
-  const teams = await loadApprovedTeams(supabase, tournamentId);
+  const teams = await getReadyPlayoffTeams(supabase, tournamentId);
   if (teams.length === 0) {
     return [];
   }
 
-  const seededTeams: Array<TeamRef | null> = [...teams];
+  const seededTeams: Array<PlayoffTeam | null> = [...teams];
   while (seededTeams.length < PLAYOFF_SIZE) {
     seededTeams.push(null);
   }
