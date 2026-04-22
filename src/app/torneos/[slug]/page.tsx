@@ -377,8 +377,8 @@ export default function TorneoDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tournamentId: tournament.id,
-          tournamentSlug: tournament.slug,
+          tournamentId: String(tournament.id || ''),
+          tournamentSlug: slug,
           teammateIds: selectedPlayers.map((player) => player.id),
           teamName,
         }),

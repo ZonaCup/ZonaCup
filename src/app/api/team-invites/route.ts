@@ -16,27 +16,41 @@ export async function POST(request: NextRequest) {
     let tournament = null as any;
 
     if (typeof tournamentId === 'string' && tournamentId.length > 0) {
-      const { data } = await adminSupabase
+      const { data, error } = await adminSupabase
         .from('tournaments')
         .select('*')
         .eq('id', tournamentId)
         .maybeSingle();
 
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
       tournament = data || null;
     }
 
     if (!tournament && typeof tournamentSlug === 'string' && tournamentSlug.length > 0) {
-      const { data } = await adminSupabase
+      const { data, error } = await adminSupabase
         .from('tournaments')
         .select('*')
         .eq('slug', tournamentSlug)
         .maybeSingle();
 
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
       tournament = data || null;
     }
 
     if (!tournament) {
-      return NextResponse.json({ error: 'Torneo no encontrado' }, { status: 404 });
+      return NextResponse.json({
+        error: 'Torneo no encontrado',
+        debug: {
+          tournamentId: tournamentId ?? null,
+          tournamentSlug: tournamentSlug ?? null,
+        },
+      }, { status: 404 });
     }
 
     const requiredTeamSize = tournament.format === '5v5' ? 5 : 2;
