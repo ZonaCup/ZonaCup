@@ -378,6 +378,7 @@ export default function TorneoDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tournamentId: tournament.id,
+          tournamentSlug: tournament.slug,
           teammateIds: selectedPlayers.map((player) => player.id),
           teamName,
         }),

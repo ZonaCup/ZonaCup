@@ -11,15 +11,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const { tournamentId, teammateIds = [], teamName } = await request.json();
+    const { tournamentId, tournamentSlug, teammateIds = [], teamName } = await request.json();
 
-    const { data: tournament, error: tournamentError } = await adminSupabase
-      .from('tournaments')
-      .select('*')
-      .eq('id', tournamentId)
-      .single();
+    let tournament = null as any;
 
-    if (tournamentError || !tournament) {
+    if (typeof tournamentId === 'string' && tournamentId.length > 0) {
+      const { data } = await adminSupabase
+        .from('tournaments')
+        .select('*')
+        .eq('id', tournamentId)
+        .maybeSingle();
+
+      tournament = data || null;
+    }
+
+    if (!tournament && typeof tournamentSlug === 'string' && tournamentSlug.length > 0) {
+      const { data } = await adminSupabase
+        .from('tournaments')
+        .select('*')
+        .eq('slug', tournamentSlug)
+        .maybeSingle();
+
+      tournament = data || null;
+    }
+
+    if (!tournament) {
       return NextResponse.json({ error: 'Torneo no encontrado' }, { status: 404 });
     }
 
@@ -65,7 +81,7 @@ export async function POST(request: NextRequest) {
     const { data: conflictingInvites, error: conflictingInvitesError } = await adminSupabase
       .from('team_invites')
       .select('id')
-      .eq('tournament_id', tournamentId)
+      .eq('tournament_id', tournament.id)
       .in('invited_user_id', normalizedTeammateIds)
       .in('status', ['pending', 'accepted']);
 
@@ -91,7 +107,7 @@ export async function POST(request: NextRequest) {
       const { data: conflictingRegistrations, error: conflictingRegistrationsError } = await adminSupabase
         .from('registrations')
         .select('id')
-        .eq('tournament_id', tournamentId)
+        .eq('tournament_id', tournament.id)
         .in('team_id', teamIds)
         .neq('payment_status', 'rejected');
 
@@ -139,7 +155,7 @@ export async function POST(request: NextRequest) {
     }
 
     const invitePayload = normalizedTeammateIds.map((teammateId) => ({
-      tournament_id: tournamentId,
+      tournament_id: tournament.id,
       team_id: team.id,
       invited_user_id: teammateId,
       invited_by_user_id: user.id,
