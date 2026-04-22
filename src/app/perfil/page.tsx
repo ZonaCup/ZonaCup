@@ -64,6 +64,21 @@ export default function PerfilPage() {
     });
   }, [supabase]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`profile-invites-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_invites', filter: `invited_user_id=eq.${user.id}` }, () => {
+        void loadInvites(user.id);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, user?.id]);
+
   async function loadInvites(userId: string) {
     const { data } = await supabase
       .from('team_invites')
@@ -215,6 +230,7 @@ export default function PerfilPage() {
               <option value="AR">Argentina</option>
               <option value="CL">Chile</option>
               <option value="PE">Peru</option>
+              <option value="UY">Uruguay</option>
               <option value="OTHER">Otro</option>
             </select>
           </div>

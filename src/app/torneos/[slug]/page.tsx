@@ -470,16 +470,21 @@ export default function TorneoDetailPage() {
   const requiredTeammates = tournament.format === '5v5' ? 4 : 1;
   const teamReadyForPayment = captainInvites.length === requiredTeammates;
   const canCreateInvites = selectedPlayers.length === requiredTeammates && captainInvites.length === 0;
+  const canRetryPayment = userRegistration?.payment_status === 'pending' && paymentStatus === 'failure';
+  const effectivePaymentState = canRetryPayment ? 'retryable' : userRegistration?.payment_status || null;
+  const canManageTeam = Boolean(user) && effectivePaymentState !== 'approved';
   const readyTeams = teamBoard.filter((entry) => entry.isReady);
   const paidTeams = teamBoard.filter((entry) => entry.isPaid);
   const currentTeamStatus = userRegistration?.team_id
     ? teamBoard.find((entry) => entry.team?.id === userRegistration.team_id) || null
-    : null;
+      : null;
   const registrationLabel =
-    userRegistration?.payment_status === 'approved'
+    effectivePaymentState === 'approved'
       ? 'Ya estas inscripto'
-      : userRegistration?.payment_status === 'pending'
-        ? 'Pago pendiente'
+      : effectivePaymentState === 'retryable'
+        ? 'Reintentar pago'
+        : effectivePaymentState === 'pending'
+          ? 'Pago pendiente'
         : user
           ? 'Inscribirme y pagar'
           : 'Ingresar con Discord para inscribirme';
@@ -646,13 +651,16 @@ export default function TorneoDetailPage() {
                 <div className="flex justify-between py-1.5 border-b border-white/5">
                   <span className="text-ash">Tu estado</span>
                   <span className={`font-semibold ${
-                    userRegistration?.payment_status === 'approved' ? 'text-green-400' :
-                    userRegistration?.payment_status === 'pending' ? 'text-gold' :
+                    effectivePaymentState === 'approved' ? 'text-green-400' :
+                    effectivePaymentState === 'retryable' ? 'text-red-400' :
+                    effectivePaymentState === 'pending' ? 'text-gold' :
                     'text-ivory'
                   }`}>
-                    {userRegistration?.payment_status === 'approved'
+                    {effectivePaymentState === 'approved'
                       ? 'Confirmado'
-                      : userRegistration?.payment_status === 'pending'
+                      : effectivePaymentState === 'retryable'
+                        ? 'Pago rechazado'
+                      : effectivePaymentState === 'pending'
                         ? 'Pendiente'
                         : 'Sin inscripcion'}
                   </span>
@@ -667,7 +675,7 @@ export default function TorneoDetailPage() {
                 )}
               </div>
 
-              {user && !userRegistration?.payment_status && (
+              {canManageTeam && (
                 <div className="mb-4 rounded border border-white/8 bg-bg-deep p-4">
                   <div className="text-[10px] uppercase tracking-[0.2em] text-fire-core mb-3">
                     {tournament.format === '5v5' ? 'Arma tu roster' : 'Elegi tu duo'}
@@ -801,7 +809,7 @@ export default function TorneoDetailPage() {
                 </div>
               )}
 
-              {user && !userRegistration?.payment_status && captainInvites.length === 0 && (
+              {canManageTeam && captainInvites.length === 0 && (
                 <button
                   onClick={handleCreateInvites}
                   disabled={creatingInvites || !canCreateInvites}
@@ -814,7 +822,7 @@ export default function TorneoDetailPage() {
               {tournament.current_slots < tournament.max_slots && tournament.status !== 'finished' ? (
                 <button
                   onClick={handleRegister}
-                  disabled={registering || userRegistration?.payment_status === 'approved' || (user ? !teamReadyForPayment && !userRegistration?.payment_status : false)}
+                  disabled={registering || effectivePaymentState === 'approved' || (user ? !teamReadyForPayment : false)}
                   className="btn-fire w-full !tracking-wider disabled:opacity-60"
                 >
                   {registering ? 'Procesando...' : registrationLabel}

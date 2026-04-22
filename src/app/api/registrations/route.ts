@@ -118,10 +118,13 @@ export async function POST(request: NextRequest) {
       }
 
       registration = createdRegistration;
-    } else if (!registration.team_id && resolvedTeamId) {
+    } else if ((!registration.team_id && resolvedTeamId) || registration.team_id !== resolvedTeamId) {
       const { data: updatedRegistration, error: updateError } = await adminSupabase
         .from('registrations')
-        .update({ team_id: resolvedTeamId })
+        .update({
+          team_id: resolvedTeamId,
+          payment_id: null,
+        })
         .eq('id', registration.id)
         .select()
         .single();
