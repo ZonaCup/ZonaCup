@@ -33,7 +33,7 @@ export default function TorneosPage() {
   const [teamBoards, setTeamBoards] = useState<Record<string, TournamentPreviewEntry[]>>({});
   const [filter, setFilter] = useState('all');
   const supabase = createClient();
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
 
   useEffect(() => {
     loadTournaments();
@@ -112,8 +112,8 @@ export default function TorneosPage() {
               const d = new Date(t.date);
               const fillPct = t.max_slots > 0 ? Math.round((t.current_slots / t.max_slots) * 100) : 0;
               const readyTeams = teamBoards[t.id] || [];
-              const localizedPool = formatCurrencyAmount(getTournamentPrizePoolAmount(t, currency), currency);
-              const localizedEntry = formatCurrencyAmount(getTournamentEntryAmount(t, currency), currency);
+              const localizedPool = formatCurrencyAmount(getTournamentPrizePoolAmount(t, currency, rates), currency);
+              const localizedEntry = formatCurrencyAmount(getTournamentEntryAmount(t, currency, rates), currency);
               return (
                 <div key={t.id} className="space-y-3">
                   <div

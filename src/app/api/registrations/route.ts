@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabase, createServerSupabase } from '@/lib/supabase-server';
 import { createTournamentPayment } from '@/lib/mercadopago';
+import { fetchExchangeRates } from '@/lib/currency';
 
 export async function POST(request: NextRequest) {
   try {
@@ -138,13 +139,16 @@ export async function POST(request: NextRequest) {
 
     let preference;
     try {
+      const exchange = await fetchExchangeRates();
+      const entryFeeArs = Number((Number(tournament.entry_fee_usd || 0) * exchange.rates.ARS).toFixed(2));
+
       preference = await createTournamentPayment({
         tournamentName: tournament.name,
         tournamentId: tournament.id,
         tournamentSlug: tournament.slug,
         userId: user.id,
         registrationId: registration.id,
-        amount: tournament.entry_fee_ars || tournament.entry_fee_usd * 1400,
+        amount: entryFeeArs || tournament.entry_fee_ars || tournament.entry_fee_usd * 1400,
         playerEmail: user.email || `${user.id}@zonacup.pro`,
         playerName: profile?.display_name || user.user_metadata?.full_name || 'Jugador',
       });

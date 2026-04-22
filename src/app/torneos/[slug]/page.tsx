@@ -85,7 +85,7 @@ export default function TorneoDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
 
   const [tournament, setTournament] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
@@ -483,8 +483,8 @@ export default function TorneoDetailPage() {
         : user
           ? 'Inscribirme y pagar'
           : 'Ingresar con Discord para inscribirme';
-  const localizedEntry = formatCurrencyAmount(getTournamentEntryAmount(tournament, currency), currency);
-  const localizedPool = formatCurrencyAmount(getTournamentPrizePoolAmount(tournament, currency), currency);
+  const localizedEntry = formatCurrencyAmount(getTournamentEntryAmount(tournament, currency, rates), currency);
+  const localizedPool = formatCurrencyAmount(getTournamentPrizePoolAmount(tournament, currency, rates), currency);
 
   return (
     <>

@@ -4,8 +4,8 @@ import { CurrencyProvider } from '@/components/CurrencyProvider';
 
 export const metadata: Metadata = {
   title: 'Zona Cup · El circuito competitivo de VALO en LATAM',
-  description: 'Torneos 2v2 y 5v5 de VALORANT todas las semanas. Premios pagados en 48 horas. Ranking oficial. Argentina, Chile y Perú.',
-  keywords: 'valorant, torneos, esports, argentina, chile, peru, latam, 2v2, 5v5, competitivo',
+  description: 'Torneos 2v2 y 5v5 de VALORANT todas las semanas. Premios pagados en 48 horas. Ranking oficial. Argentina, Chile, Perú y Uruguay.',
+  keywords: 'valorant, torneos, esports, argentina, chile, peru, uruguay, latam, 2v2, 5v5, competitivo',
   openGraph: {
     title: 'Zona Cup · Torneos VALORANT LATAM',
     description: 'El circuito competitivo más serio de VALORANT en LATAM. Premios reales, ranking oficial, operación profesional.',

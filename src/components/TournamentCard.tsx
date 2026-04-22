@@ -46,7 +46,7 @@ const defaultTournament: Tournament = {
 export default function TournamentCard({ tournament }: TournamentCardProps) {
   const [liveTournament, setLiveTournament] = useState<Tournament | null>(null);
   const supabase = useMemo(() => createClient(), []);
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
 
   useEffect(() => {
     if (tournament) return;
@@ -71,8 +71,8 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
   const t = tournament || liveTournament || defaultTournament;
   const fillPercent = t.max_slots > 0 ? Math.round((t.current_slots / t.max_slots) * 100) : 0;
   const formatLabel = t.format === '2v2' ? 'duplas' : 'equipos';
-  const localizedPool = formatCurrencyAmount(getTournamentPrizePoolAmount(t, currency), currency);
-  const localizedEntry = formatCurrencyAmount(getTournamentEntryAmount(t, currency), currency);
+  const localizedPool = formatCurrencyAmount(getTournamentPrizePoolAmount(t, currency, rates), currency);
+  const localizedEntry = formatCurrencyAmount(getTournamentEntryAmount(t, currency, rates), currency);
 
   return (
     <div className="card p-7 md:p-8 relative overflow-hidden border-fire-core/20 min-h-[580px] md:min-h-[650px] flex flex-col">

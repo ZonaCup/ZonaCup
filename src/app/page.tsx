@@ -35,7 +35,7 @@ export default function Home() {
   const [supabase] = useState(() => createClient());
   const [filter, setFilter] = useState('all');
   const [tournaments, setTournaments] = useState<HomeTournament[]>([]);
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
 
   useEffect(() => {
     loadTournaments();
@@ -250,8 +250,8 @@ export default function Home() {
                   : t.is_special
                   ? 'bg-green-400/12 text-green-400'
                   : 'bg-fire-core/12 text-fire-core';
-                const localizedPool = formatCurrencyAmount(getTournamentPrizePoolAmount(t, currency), currency);
-                const localizedEntry = formatCurrencyAmount(getTournamentEntryAmount(t, currency), currency);
+                const localizedPool = formatCurrencyAmount(getTournamentPrizePoolAmount(t, currency, rates), currency);
+                const localizedEntry = formatCurrencyAmount(getTournamentEntryAmount(t, currency, rates), currency);
 
                 return (
                   <div

@@ -1,10 +1,11 @@
-export type CurrencyCode = 'USD' | 'ARS' | 'CLP' | 'PEN';
-export type SupportedCountryCode = 'AR' | 'CL' | 'PE' | 'US' | 'OTHER';
+export type CurrencyCode = 'USD' | 'ARS' | 'CLP' | 'PEN' | 'UYU';
+export type SupportedCountryCode = 'AR' | 'CL' | 'PE' | 'UY' | 'US' | 'OTHER';
 
 export type ExchangeRates = {
   ARS: number;
   CLP: number;
   PEN: number;
+  UYU: number;
 };
 
 type PriceSource = {
@@ -16,13 +17,17 @@ const DEFAULT_EXCHANGE_RATES: ExchangeRates = {
   ARS: Number(process.env.NEXT_PUBLIC_USD_TO_ARS || 1400),
   CLP: Number(process.env.NEXT_PUBLIC_USD_TO_CLP || 950),
   PEN: Number(process.env.NEXT_PUBLIC_USD_TO_PEN || 3.75),
+  UYU: Number(process.env.NEXT_PUBLIC_USD_TO_UYU || 40),
 };
+
+const EXCHANGE_RATES_ENDPOINT = 'https://open.er-api.com/v6/latest/USD';
 
 const CURRENCY_LOCALES: Record<CurrencyCode, string> = {
   USD: 'en-US',
   ARS: 'es-AR',
   CLP: 'es-CL',
   PEN: 'es-PE',
+  UYU: 'es-UY',
 };
 
 export const SUPPORTED_CURRENCIES: Array<{ code: CurrencyCode; label: string }> = [
@@ -30,16 +35,64 @@ export const SUPPORTED_CURRENCIES: Array<{ code: CurrencyCode; label: string }> 
   { code: 'ARS', label: 'ARS' },
   { code: 'CLP', label: 'CLP' },
   { code: 'PEN', label: 'PEN' },
+  { code: 'UYU', label: 'UYU' },
 ];
 
 export function getExchangeRates(): ExchangeRates {
   return DEFAULT_EXCHANGE_RATES;
 }
 
+export async function fetchExchangeRates(): Promise<{
+  rates: ExchangeRates;
+  provider: string;
+  updatedAt: string | null;
+}> {
+  try {
+    const response = await fetch(EXCHANGE_RATES_ENDPOINT, {
+      next: { revalidate: 3600 },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Exchange rates request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const rates = payload?.rates;
+
+    if (
+      payload?.result !== 'success' ||
+      !rates ||
+      typeof rates.ARS !== 'number' ||
+      typeof rates.CLP !== 'number' ||
+      typeof rates.PEN !== 'number' ||
+      typeof rates.UYU !== 'number'
+    ) {
+      throw new Error('Exchange rates payload is invalid');
+    }
+
+    return {
+      rates: {
+        ARS: rates.ARS,
+        CLP: rates.CLP,
+        PEN: rates.PEN,
+        UYU: rates.UYU,
+      },
+      provider: payload.provider || 'https://www.exchangerate-api.com',
+      updatedAt: payload.time_last_update_utc || null,
+    };
+  } catch {
+    return {
+      rates: DEFAULT_EXCHANGE_RATES,
+      provider: 'fallback',
+      updatedAt: null,
+    };
+  }
+}
+
 export function normalizeCountryCode(value?: string | null): SupportedCountryCode {
   const normalized = value?.toUpperCase();
 
-  if (normalized === 'AR' || normalized === 'CL' || normalized === 'PE' || normalized === 'US') {
+  if (normalized === 'AR' || normalized === 'CL' || normalized === 'PE' || normalized === 'UY' || normalized === 'US') {
     return normalized;
   }
 
@@ -54,6 +107,8 @@ export function getCurrencyForCountry(country?: string | null): CurrencyCode {
       return 'CLP';
     case 'PE':
       return 'PEN';
+    case 'UY':
+      return 'UYU';
     default:
       return 'USD';
   }
@@ -65,6 +120,7 @@ export function getCountryFromLanguageHeader(header?: string | null): SupportedC
   if (language.includes('-AR')) return 'AR';
   if (language.includes('-CL')) return 'CL';
   if (language.includes('-PE')) return 'PE';
+  if (language.includes('-UY')) return 'UY';
   if (language.includes('-US')) return 'US';
 
   return 'OTHER';
@@ -104,5 +160,6 @@ export function buildTournamentCurrencyPreview(entryFeeUsd: number, rates = getE
     ARS: Math.round(convertUsdAmount(entryFeeUsd, 'ARS', rates)),
     CLP: Math.round(convertUsdAmount(entryFeeUsd, 'CLP', rates)),
     PEN: Number(convertUsdAmount(entryFeeUsd, 'PEN', rates).toFixed(2)),
+    UYU: Number(convertUsdAmount(entryFeeUsd, 'UYU', rates).toFixed(2)),
   };
 }

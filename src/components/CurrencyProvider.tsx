@@ -1,12 +1,13 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { CurrencyCode, SUPPORTED_CURRENCIES, getCountryFromLanguageHeader, getCurrencyForCountry } from '@/lib/currency';
+import { CurrencyCode, ExchangeRates, SUPPORTED_CURRENCIES, getCountryFromLanguageHeader, getCurrencyForCountry, getExchangeRates } from '@/lib/currency';
 
 type CurrencyContextValue = {
   currency: CurrencyCode;
   country: string;
   detectedCurrency: CurrencyCode;
+  rates: ExchangeRates;
   selectionMode: 'auto' | 'manual';
   setCurrency: (currency: CurrencyCode) => void;
   resetCurrency: () => void;
@@ -25,6 +26,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [country, setCountry] = useState('OTHER');
   const [detectedCurrency, setDetectedCurrency] = useState<CurrencyCode>('USD');
   const [currency, setCurrencyState] = useState<CurrencyCode>('USD');
+  const [rates, setRates] = useState<ExchangeRates>(getExchangeRates());
   const [selectionMode, setSelectionMode] = useState<'auto' | 'manual'>('auto');
 
   useEffect(() => {
@@ -41,6 +43,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
         setCountry(nextCountry);
         setDetectedCurrency(nextDetectedCurrency);
+        if (payload.rates) {
+          setRates(payload.rates);
+        }
         setSelectionMode(saved ? 'manual' : 'auto');
         setCurrencyState(saved ?? nextDetectedCurrency);
       } catch {
@@ -48,6 +53,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
           getCountryFromLanguageHeader(typeof navigator !== 'undefined' ? navigator.language : null)
         );
         setDetectedCurrency(fallbackDetectedCurrency);
+        setRates(getExchangeRates());
         setSelectionMode(saved ? 'manual' : 'auto');
         setCurrencyState(saved ?? fallbackDetectedCurrency);
       }
@@ -72,11 +78,12 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     currency,
     country,
     detectedCurrency,
+    rates,
     selectionMode,
     setCurrency,
     resetCurrency,
     options: SUPPORTED_CURRENCIES,
-  }), [country, currency, detectedCurrency, selectionMode]);
+  }), [country, currency, detectedCurrency, rates, selectionMode]);
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }

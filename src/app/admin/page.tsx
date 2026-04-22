@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Navbar from '@/components/Navbar';
+import { useCurrency } from '@/components/CurrencyProvider';
 import { createClient } from '@/lib/supabase-browser';
 import { buildTournamentCurrencyPreview, formatCurrencyAmount } from '@/lib/currency';
 
@@ -94,6 +95,7 @@ const emptyForm = {
 
 export default function AdminPage() {
   const supabase = useMemo(() => createClient(), []);
+  const { rates } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -210,7 +212,7 @@ export default function AdminPage() {
       : `/api/tournaments/${selectedTournamentId}`;
     const method = formMode === 'create' ? 'POST' : 'PATCH';
 
-    const derivedFees = buildTournamentCurrencyPreview(Number(form.entry_fee_usd || 0));
+    const derivedFees = buildTournamentCurrencyPreview(Number(form.entry_fee_usd || 0), rates);
 
     const response = await fetch(endpoint, {
       method,
@@ -288,7 +290,7 @@ export default function AdminPage() {
   const paidTeams = teamBoard.filter((entry) => entry.isPaid);
   const readyTeams = teamBoard.filter((entry) => entry.isReady);
   const pendingAcceptance = paidTeams.filter((entry) => !entry.isReady);
-  const currencyPreview = buildTournamentCurrencyPreview(Number(form.entry_fee_usd || 0));
+  const currencyPreview = buildTournamentCurrencyPreview(Number(form.entry_fee_usd || 0), rates);
   const groupedMatches = matches.reduce<Record<number, Match[]>>((acc, match) => {
     acc[match.round] = acc[match.round] || [];
     acc[match.round].push(match);
@@ -388,7 +390,7 @@ export default function AdminPage() {
                   </Field>
                   <Field label="Vista por moneda">
                     <div className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-ivory">
-                      {formatCurrencyAmount(currencyPreview.ARS, 'ARS')} · {formatCurrencyAmount(currencyPreview.CLP, 'CLP')} · {formatCurrencyAmount(currencyPreview.PEN, 'PEN')}
+                      {formatCurrencyAmount(currencyPreview.ARS, 'ARS')} · {formatCurrencyAmount(currencyPreview.CLP, 'CLP')} · {formatCurrencyAmount(currencyPreview.PEN, 'PEN')} · {formatCurrencyAmount(currencyPreview.UYU, 'UYU')}
                     </div>
                   </Field>
                   <Field label="Pozo base">
