@@ -11,7 +11,7 @@ export default function TerminosPage() {
         <div className="card p-6 text-sm text-ash leading-relaxed">
           <p className="mb-4"><strong>TÉRMINOS, CONDICIONES Y REGLAMENTO DE COMPETICIÓN OFICIAL - ZonaCup</strong></p>
           <p className="mb-4"><strong>1. VÍNCULO LEGAL Y AUTORIZACIÓN DE RIOT GAMES</strong></p>
-          <p className="mb-4">ZonaCup opera este torneo bajo una Licencia de Torneo de la Comunidad / Oficial otorgada por Riot Games. Los participantes reconocen que:
+          <p className="mb-4">Los participantes reconocen que:
           Este evento no es organizado, patrocinado ni administrado directamente por Riot Games, Inc.
           Toda la responsabilidad de la ejecución, gestión de premios y soporte técnico recae exclusivamente en ZonaCup.
           Los participantes deben cumplir en todo momento con los Términos de Servicio de Riot Games y la Política de Privacidad de Riot Games.</p>
