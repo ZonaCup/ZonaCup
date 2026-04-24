@@ -1,30 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase-server';
+import { createAdminSupabase } from '@/lib/supabase-server';
+import { getRealRankings } from '@/lib/rankings';
 
 // GET /api/rankings - Get leaderboard
 export async function GET(request: NextRequest) {
-  const supabase = await createServerSupabase();
-  const url = new URL(request.url);
-  const season = url.searchParams.get('season') || '1';
-  const limit = parseInt(url.searchParams.get('limit') || '50');
-  const country = url.searchParams.get('country');
+  try {
+    const supabase = createAdminSupabase();
+    const url = new URL(request.url);
+    const season = parseInt(url.searchParams.get('season') || '1', 10);
+    const limit = parseInt(url.searchParams.get('limit') || '50', 10);
+    const country = url.searchParams.get('country');
 
-  let query = supabase
-    .from('leaderboard')
-    .select('*')
-    .eq('season', parseInt(season))
-    .order('points', { ascending: false })
-    .limit(limit);
+    const data = await getRealRankings(supabase, {
+      season,
+      limit,
+      country,
+    });
 
-  if (country) {
-    query = query.eq('country', country);
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal error' },
+      { status: 500 }
+    );
   }
-
-  const { data, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(data);
 }

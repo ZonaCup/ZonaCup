@@ -1,34 +1,61 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
+type RankingPlayer = {
+  user_id: string;
+  season: number;
+  points: number;
+  tournaments_played: number;
+  wins: number;
+  division: string;
+  display_name: string | null;
+  riot_id: string | null;
+  riot_tag: string | null;
+  country: string | null;
+  rank: string | null;
+  discord_avatar: string | null;
+  position: number;
+};
+
 export default function RankingPage() {
-  const [players, setPlayers] = useState<any[]>([]);
+  const supabase = useMemo(() => createClient(), []);
+  const [players, setPlayers] = useState<RankingPlayer[]>([]);
   const [countryFilter, setCountryFilter] = useState('all');
-  const supabase = createClient();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadRanking();
-    const channel = supabase.channel('ranking-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rankings' }, () => loadRanking())
+    void loadRanking(countryFilter);
+
+    const channel = supabase
+      .channel('ranking-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => void loadRanking(countryFilter))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, () => void loadRanking(countryFilter))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, () => void loadRanking(countryFilter))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => void loadRanking(countryFilter))
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
 
-  async function loadRanking() {
-    const { data } = await supabase
-      .from('leaderboard')
-      .select('*')
-      .eq('season', 1)
-      .order('points', { ascending: false })
-      .limit(100);
-    setPlayers(data || []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [countryFilter, supabase]);
+
+  async function loadRanking(country: string) {
+    setLoading(true);
+    try {
+      const countryParam = country === 'all' ? '' : `&country=${country}`;
+      const response = await fetch(`/api/rankings?season=1&limit=100${countryParam}`, {
+        cache: 'no-store',
+      });
+      const data = await response.json();
+      setPlayers(Array.isArray(data) ? data : []);
+    } finally {
+      setLoading(false);
+    }
   }
-
-  const filtered = countryFilter === 'all' ? players : players.filter(p => p.country === countryFilter);
 
   const posClass = (i: number) => {
     if (i === 0) return 'text-gold';
@@ -60,9 +87,9 @@ export default function RankingPage() {
           <div className="flex gap-1.5">
             {[
               { key: 'all', label: 'Todos' },
-              { key: 'AR', label: '🇦🇷 AR' },
-              { key: 'CL', label: '🇨🇱 CL' },
-              { key: 'PE', label: '🇵🇪 PE' },
+              { key: 'AR', label: 'AR' },
+              { key: 'CL', label: 'CL' },
+              { key: 'PE', label: 'PE' },
             ].map((f) => (
               <button
                 key={f.key}
@@ -78,43 +105,42 @@ export default function RankingPage() {
         <div className="card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-white/5 flex justify-between items-center">
             <span className="text-[11px] text-ash tracking-[1.5px] uppercase">
-              {filtered.length} jugadores · Temporada 1
+              {players.length} jugadores reales · campeones de torneos
             </span>
-            <span className="text-[11px] text-green-400">● En vivo</span>
+            <span className="text-[11px] text-green-400">• En vivo</span>
           </div>
 
-          {/* Header row */}
           <div className="hidden md:grid px-5 py-2 grid-cols-[40px_1fr_100px_80px_80px_80px] gap-3 text-[10px] text-ash tracking-wider uppercase border-b border-white/5">
             <div>#</div>
             <div>Jugador</div>
-            <div>División</div>
+            <div>Division</div>
             <div className="text-right">Puntos</div>
+            <div className="text-right">Titulos</div>
             <div className="text-right">Torneos</div>
-            <div className="text-right">Wins</div>
           </div>
 
-          {filtered.length === 0 ? (
+          {players.length === 0 ? (
             <div className="p-12 text-center text-ash">
-              No hay jugadores en el ranking todavía. Jugá tu primer torneo para entrar.
+              {loading ? 'Cargando ranking real...' : 'No hay campeones cargados todavia. Cuando cierres un torneo y guardes su ganador, aparece aca.'}
             </div>
           ) : (
-            filtered.map((p, i) => (
+            players.map((p, i) => (
               <div key={p.user_id} className="px-5 py-3 grid grid-cols-[40px_1fr_auto] md:grid-cols-[40px_1fr_100px_80px_80px_80px] gap-3 items-center border-b border-white/[0.02] hover:bg-fire-core/[0.03] transition-colors">
                 <div className={`font-display text-base font-bold ${posClass(i)}`}>
                   {String(i + 1).padStart(2, '0')}
                 </div>
                 <div>
-                  <div className="text-sm text-ivory font-semibold">{p.display_name || p.riot_id || 'Anónimo'}</div>
+                  <div className="text-sm text-ivory font-semibold">{p.display_name || p.riot_id || 'Anonimo'}</div>
                   <div className="text-[11px] text-ash">
-                    {p.country || '-'} · {p.rank || '-'} · {p.tournaments_played} torneos
+                    {p.country || '-'} · {p.rank || '-'} · {p.wins} titulos
                   </div>
                 </div>
                 <span className={`text-[9px] px-2 py-0.5 rounded-sm tracking-wider uppercase font-bold text-center ${divisionBadge(p.division)}`}>
                   {p.division}
                 </span>
                 <div className="hidden md:block font-display text-sm text-ivory font-semibold text-right">{p.points}</div>
-                <div className="hidden md:block text-sm text-ash text-right">{p.tournaments_played}</div>
                 <div className="hidden md:block text-sm text-ash text-right">{p.wins}</div>
+                <div className="hidden md:block text-sm text-ash text-right">{p.tournaments_played}</div>
               </div>
             ))
           )}

@@ -115,8 +115,8 @@ export default function TournamentCard({ tournament }: TournamentCardProps) {
         <span className="text-ivory font-bold">{localizedEntry}</span>
       </div>
 
-      <Link href={`/torneos/${t.slug}`}>
-        <button className="btn-fire w-full mt-3 !tracking-[1px] !py-4 !text-base">Asegurar mi lugar</button>
+      <Link href={`/torneos/${t.slug}`} className="btn-fire w-full mt-3 !tracking-[1px] !py-4 !text-base text-center">
+        Asegurar mi lugar
       </Link>
     </div>
   );

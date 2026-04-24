@@ -31,19 +31,36 @@ type HomeTournament = {
   status: string;
 };
 
+type HomeRankingPlayer = {
+  user_id: string;
+  points: number;
+  tournaments_played: number;
+  wins: number;
+  division: string;
+  display_name: string | null;
+  riot_id: string | null;
+  country: string | null;
+  rank: string | null;
+};
+
 export default function Home() {
   const [supabase] = useState(() => createClient());
   const [filter, setFilter] = useState('all');
   const [tournaments, setTournaments] = useState<HomeTournament[]>([]);
+  const [topPlayers, setTopPlayers] = useState<HomeRankingPlayer[]>([]);
+  const [activatingPro, setActivatingPro] = useState(false);
   const { currency, rates } = useCurrency();
 
   useEffect(() => {
     loadTournaments();
+    void loadTopPlayers();
 
     const channel = supabase
       .channel('home-tournaments')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, () => loadTournaments())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => loadTournaments())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => void loadTopPlayers())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, () => void loadTopPlayers())
       .subscribe();
 
     return () => {
@@ -61,6 +78,35 @@ export default function Home() {
     setTournaments((data || []) as HomeTournament[]);
   }
 
+  async function loadTopPlayers() {
+    const response = await fetch('/api/rankings?season=1&limit=5', { cache: 'no-store' });
+    const data = await response.json();
+    setTopPlayers(Array.isArray(data) ? data : []);
+  }
+
+  async function handleActivatePro() {
+    if (activatingPro) return;
+
+    setActivatingPro(true);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+
+      if (!authData.user) {
+        await supabase.auth.signInWithOAuth({
+          provider: 'discord',
+          options: {
+            redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent('/api/pro-membership')}`,
+          },
+        });
+        return;
+      }
+
+      window.location.href = '/api/pro-membership';
+    } finally {
+      setActivatingPro(false);
+    }
+  }
+
   const filteredTournaments = (
     filter === 'all'
       ? tournaments
@@ -70,6 +116,7 @@ export default function Home() {
   ).slice(0, 4);
 
   const nextTournament = tournaments[0];
+  const homeRanking = topPlayers.slice(0, 5);
 
   return (
     <>
@@ -121,8 +168,8 @@ export default function Home() {
             </p>
 
             <div className="flex flex-wrap gap-3 mb-12">
-              <Link href="/torneos"><button className="btn-fire">Inscribirme al pr&oacute;ximo torneo</button></Link>
-              <a href="#como"><button className="btn-ghost">C&oacute;mo funciona</button></a>
+              <Link href="/torneos" className="btn-fire">Inscribirme al pr&oacute;ximo torneo</Link>
+              <a href="#como" className="btn-ghost">C&oacute;mo funciona</a>
             </div>
 
             <div className="flex flex-wrap gap-8 md:gap-10 pt-7 border-t border-fire-core/10">
@@ -312,38 +359,59 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-12">
           <div>
             <p className="text-[15px] text-smoke leading-relaxed max-w-lg mb-6">
-              Cada torneo suma puntos al ranking. El Top 50 de la temporada accede a los Majors trimestrales con pool de USD 5.000 y premios exclusivos en skins.
+              El ranking sale de datos reales de la base. Cada titulo suma puntos para los jugadores del equipo campeon y arma el top en vivo.
             </p>
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="card p-4"><div className="font-display text-2xl font-bold text-ivory">32</div><div className="text-[10px] text-ash tracking-[1.5px] uppercase mt-0.5">Dias restantes</div></div>
               <div className="card p-4"><div className="font-display text-2xl font-bold text-ivory">USD 5K</div><div className="text-[10px] text-ash tracking-[1.5px] uppercase mt-0.5">Pool del Major</div></div>
             </div>
-            <Link href="/ranking"><button className="btn-ghost">Ver ranking completo aca</button></Link>
+            <Link href="/ranking" className="btn-ghost">Ver ranking completo aca</Link>
           </div>
 
           <div className="card overflow-hidden">
             <div className="px-5 py-3.5 border-b border-white/5 flex justify-between items-center">
-              <span className="text-[11px] text-ash tracking-[1.5px] uppercase">Top jugadores Temporada 1</span>
-              <span className="text-[11px] text-green-400">● En vivo</span>
+              <span className="text-[11px] text-ash tracking-[1.5px] uppercase">Top jugadores reales</span>
+              <span className="text-[11px] text-green-400">? En vivo</span>
             </div>
-            {[
-              { pos: '01', posClass: 'text-gold', name: 'xPerseo', sub: 'AR · Radiant · 12 torneos', badge: 'Radiant', badgeClass: 'bg-gold/10 text-gold', pts: '2.840' },
-              { pos: '02', posClass: 'text-[#b4b2a9]', name: 'MaloSiempre', sub: 'CL · Inmortal · 11 torneos', badge: 'Radiant', badgeClass: 'bg-gold/10 text-gold', pts: '2.715' },
-              { pos: '03', posClass: 'text-[#d85a30]', name: 'cholo_aim', sub: 'PE · Inmortal · 10 torneos', badge: 'Platino', badgeClass: 'bg-purple-400/12 text-purple-300', pts: '2.580' },
-              { pos: '04', posClass: 'text-ash', name: 'Nocturna', sub: 'AR · Diamante · 9 torneos', badge: 'Platino', badgeClass: 'bg-purple-400/12 text-purple-300', pts: '2.340' },
-              { pos: '05', posClass: 'text-ash', name: '7pesos', sub: 'AR · Ascendente · 11 torneos', badge: 'Oro', badgeClass: 'bg-green-400/12 text-green-400', pts: '2.180' },
-            ].map((r) => (
-              <div key={r.pos} className="px-5 py-3 grid grid-cols-[32px_1fr_auto_auto] gap-3.5 items-center border-b border-white/[0.02] hover:bg-fire-core/[0.03] transition-colors">
-                <div className={`font-display text-base font-bold ${r.posClass}`}>{r.pos}</div>
-                <div>
-                  <div className="text-sm text-ivory font-semibold">{r.name}</div>
-                  <div className="text-[11px] text-ash">{r.sub}</div>
-                </div>
-                <span className={`text-[9px] px-2 py-0.5 rounded-sm tracking-wider uppercase font-bold ${r.badgeClass}`}>{r.badge}</span>
-                <div className="font-display text-sm text-ivory font-semibold">{r.pts}</div>
+            {homeRanking.length === 0 ? (
+              <div className="px-5 py-8 text-center text-sm text-ash">
+                Todavia no hay campeones cargados. Cuando cierres el primer torneo, el ranking aparece aca.
               </div>
-            ))}
-            <div className="px-5 py-3.5 text-center text-xs text-ash">Mostrando 5 de 1.247 jugadores</div>
+            ) : homeRanking.map((r, index) => {
+              const posClass = index === 0
+                ? 'text-gold'
+                : index === 1
+                  ? 'text-[#b4b2a9]'
+                  : index === 2
+                    ? 'text-[#d85a30]'
+                    : 'text-ash';
+              const badgeClass = r.division === 'radiant'
+                ? 'bg-gold/10 text-gold'
+                : r.division === 'platino'
+                  ? 'bg-purple-400/12 text-purple-300'
+                  : r.division === 'oro'
+                    ? 'bg-green-400/12 text-green-400'
+                    : r.division === 'plata'
+                      ? 'bg-blue-400/12 text-blue-300'
+                      : 'bg-fire-core/12 text-fire-core';
+
+              return (
+                <div key={r.user_id} className="px-5 py-3 grid grid-cols-[32px_1fr_auto_auto] gap-3.5 items-center border-b border-white/[0.02] hover:bg-fire-core/[0.03] transition-colors">
+                  <div className={
+                    'font-display text-base font-bold ' + posClass
+                  }>{String(index + 1).padStart(2, '0')}</div>
+                  <div>
+                    <div className="text-sm text-ivory font-semibold">{r.display_name || r.riot_id || 'Anonimo'}</div>
+                    <div className="text-[11px] text-ash">{r.country || '-'} ? {r.rank || '-'} ? {r.wins} titulos</div>
+                  </div>
+                  <span className={
+                    'text-[9px] px-2 py-0.5 rounded-sm tracking-wider uppercase font-bold ' + badgeClass
+                  }>{r.division}</span>
+                  <div className="font-display text-sm text-ivory font-semibold">{r.points}</div>
+                </div>
+              );
+            })}
+            <div className="px-5 py-3.5 text-center text-xs text-ash">Mostrando top 5 de campeones reales</div>
           </div>
         </div>
       </section>
@@ -375,7 +443,9 @@ export default function Home() {
                   <div key={f} className="flex gap-2"><span className="text-fire-core font-bold shrink-0">✓</span> {f}</div>
                 ))}
               </div>
-              <button className="btn-fire w-full mt-5">Activar Pro</button>
+              <button onClick={handleActivatePro} disabled={activatingPro} className="btn-fire w-full mt-5 disabled:opacity-70 disabled:cursor-not-allowed">
+                {activatingPro ? 'Redirigiendo...' : 'Activar Pro'}
+              </button>
             </div>
           </div>
         </div>
@@ -385,37 +455,29 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-5 md:px-10 py-20 text-center" id="premios">
         <div className="section-tag">Transparencia</div>
         <h2 className="section-title">Cero vueltas<br />con los premios.</h2>
-        <p className="text-[15px] text-smoke mx-auto max-w-md mb-2">Asi se reparte cada peso en un torneo Weekly.</p>
+        <p className="text-[15px] text-smoke mx-auto max-w-md mb-2">Asi se reparte cada peso en un torneo Weekly o Especial.</p>
 
         <div className="max-w-2xl mx-auto card p-8 mt-10 text-left">
           <div className="flex justify-between items-baseline mb-5">
             <span className="text-[13px] text-ash">2v2 · 32 duplas · 64 jugadores</span>
-            <span className="font-display text-2xl font-bold text-ivory">USD 512</span>
+            <span className="font-display text-2xl font-bold text-ivory">Premio 100%</span>
           </div>
           <div className="h-2.5 bg-bg-deep rounded-full overflow-hidden flex gap-0.5 mb-5">
-            <div className="rounded-full" style={{ flex: 40, background: '#ff6a00' }} />
-            <div className="rounded-full" style={{ flex: 20, background: '#c23a0a' }} />
-            <div className="rounded-full" style={{ flex: 10, background: '#f0997b' }} />
-            <div className="rounded-full" style={{ flex: 10, background: '#f0997b' }} />
-            <div className="rounded-full" style={{ flex: 5, background: '#afa9ec' }} />
-            <div className="rounded-full" style={{ flex: 15, background: '#5f5e5a' }} />
+            <div className="rounded-full" style={{ flex: 57, background: '#ff6a00' }} />
+            <div className="rounded-full" style={{ flex: 13, background: '#c23a0a' }} />
+            <div className="rounded-full" style={{ flex: 30, background: '#5f5e5a' }} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[13px]">
             {[
-              ['#ff6a00', '1° lugar', 'USD 205'],
-              ['#c23a0a', '2° lugar', 'USD 102'],
-              ['#f0997b', '3° / 4° lugar', 'USD 51 c/u'],
-              ['#afa9ec', 'MVP (skin)', 'USD 25'],
+              ['#ff6a00', '1° lugar', '57%'],
+              ['#c23a0a', '2° lugar', '13%'],
             ].map(([color, name, val]) => (
               <div key={name} className="flex justify-between py-2 border-b border-white/[0.03]">
                 <span className="flex items-center gap-2 text-bone"><span className="w-2 h-2 rounded-sm shrink-0" style={{ background: color }} />{name}</span>
                 <span className="text-ivory font-bold">{val}</span>
               </div>
             ))}
-            <div className="sm:col-span-2 flex justify-between py-2">
-              <span className="flex items-center gap-2 text-ash"><span className="w-2 h-2 rounded-sm bg-[#5f5e5a] shrink-0" />Operacion, staff, produccion</span>
-              <span className="text-ash font-bold">USD 78 · 15%</span>
-            </div>
+            
           </div>
         </div>
       </section>
@@ -456,8 +518,8 @@ export default function Home() {
           <h2 className="section-title !text-[42px] md:!text-[52px]">Los cupos se<br />llenan rapido.</h2>
           <p className="text-base text-smoke mb-8">23 de 32 duplas inscriptas. Quedan 9 lugares.</p>
           <div className="flex gap-3 justify-center flex-wrap">
-            <Link href="/torneos"><button className="btn-fire !py-4 !px-9 !text-[15px]">Inscribirme ahora</button></Link>
-            <Link href="/reglamento"><button className="btn-ghost !py-4 !px-7 !text-[15px]">Ver reglamento</button></Link>
+            <Link href="/torneos" className="btn-fire !py-4 !px-9 !text-[15px]">Inscribirme ahora</Link>
+            <Link href="/reglamento" className="btn-ghost !py-4 !px-7 !text-[15px]">Ver reglamento</Link>
           </div>
         </div>
       </section>

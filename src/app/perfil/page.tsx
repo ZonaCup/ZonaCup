@@ -33,8 +33,16 @@ export default function PerfilPage() {
   const [saved, setSaved] = useState(false);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
+  const [activatingPro, setActivatingPro] = useState(false);
+  const [proPaymentStatus, setProPaymentStatus] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false); // rastrea si hay cambios sin guardar
 
   const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setProPaymentStatus(params.get('pro'));
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -112,7 +120,7 @@ export default function PerfilPage() {
       .eq('id', user.id);
     setSaving(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setTimeout(() => {setSaving(false); setSaved(false); setIsDirty(false);}, 1000);
   };
 
   async function handleInviteResponse(inviteId: string, action: 'accept' | 'reject') {
@@ -133,6 +141,12 @@ export default function PerfilPage() {
     }
   }
 
+  function handleActivatePro() {
+    if (activatingPro) return;
+    setActivatingPro(true);
+    window.location.href = '/api/pro-membership';
+  }
+
   if (!user) return null;
 
   return (
@@ -141,6 +155,24 @@ export default function PerfilPage() {
       <main className="pt-24 pb-20 px-5 md:px-10 max-w-3xl mx-auto">
         <div className="section-tag">Mi perfil</div>
         <h1 className="section-title !text-4xl mb-8">Configuracion</h1>
+
+        {proPaymentStatus === 'success' && (
+          <div className="mb-8 rounded border border-green-400/30 bg-green-400/10 px-4 py-3 text-sm text-green-300">
+            Pago aprobado. Tu membresia PRO se va a activar automaticamente en unos segundos.
+          </div>
+        )}
+
+        {proPaymentStatus === 'pending' && (
+          <div className="mb-8 rounded border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">
+            Tu pago quedo pendiente. Apenas Mercado Pago lo confirme, activamos tu membresia PRO.
+          </div>
+        )}
+
+        {proPaymentStatus === 'failure' && (
+          <div className="mb-8 rounded border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+            El pago no se completo. Si queres, podes volver a intentarlo ahora.
+          </div>
+        )}
 
         {invites.length > 0 && (
           <div className="card p-6 md:p-8 space-y-4 mb-8">
@@ -203,7 +235,7 @@ export default function PerfilPage() {
               <input
                 type="text"
                 value={riotId}
-                onChange={(e) => setRiotId(e.target.value)}
+                onChange={(e) => {setRiotId(e.target.value); setIsDirty(true);}}
                 placeholder="Tu nombre en VALORANT"
                 className="w-full bg-bg-deep border border-white/10 rounded px-4 py-2.5 text-sm text-ivory focus:border-fire-core/50 focus:outline-none transition-colors"
               />
@@ -213,7 +245,7 @@ export default function PerfilPage() {
               <input
                 type="text"
                 value={riotTag}
-                onChange={(e) => setRiotTag(e.target.value)}
+                onChange={(e) => {setRiotTag(e.target.value); setIsDirty(true);}}
                 placeholder="LAN1"
                 className="w-full bg-bg-deep border border-white/10 rounded px-4 py-2.5 text-sm text-ivory focus:border-fire-core/50 focus:outline-none transition-colors"
               />
@@ -224,7 +256,7 @@ export default function PerfilPage() {
             <label className="block text-xs text-ash tracking-wider uppercase mb-1.5">Pais</label>
             <select
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={(e) => {setCountry(e.target.value); setIsDirty(true);}}
               className="w-full bg-bg-deep border border-white/10 rounded px-4 py-2.5 text-sm text-ivory focus:border-fire-core/50 focus:outline-none transition-colors"
             >
               <option value="AR">Argentina</option>
@@ -239,7 +271,7 @@ export default function PerfilPage() {
             <label className="block text-xs text-ash tracking-wider uppercase mb-1.5">Rango actual en VALORANT</label>
             <select
               value={rank}
-              onChange={(e) => setRank(e.target.value)}
+              onChange={(e) => {setRank(e.target.value); setIsDirty(true);}}
               className="w-full bg-bg-deep border border-white/10 rounded px-4 py-2.5 text-sm text-ivory focus:border-fire-core/50 focus:outline-none transition-colors"
             >
               <option value="">Selecciona tu rango</option>
@@ -248,10 +280,11 @@ export default function PerfilPage() {
               ))}
             </select>
           </div>
-
-          <button onClick={handleSave} disabled={saving} className="btn-fire !w-full sm:!w-auto">
-            {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
-          </button>
+          
+            <button onClick={handleSave} disabled={saving || !isDirty} className="btn-fire !w-full sm:!w-auto"
+            >
+            {!isDirty && !saving && !saved ? 'Sin cambios' : saving ? 'Guardando...' : saved && !isDirty ? 'Guardado' : 'Guardar cambios'}
+            </button>
         </div>
 
         {profile && (
@@ -275,6 +308,15 @@ export default function PerfilPage() {
                 <div className="text-[10px] text-ash tracking-wider uppercase">Torneos</div>
               </div>
             </div>
+            {!profile.is_pro && (
+              <button
+                onClick={handleActivatePro}
+                disabled={activatingPro}
+                className="btn-fire mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {activatingPro ? 'Redirigiendo...' : 'Activar Pro con Mercado Pago'}
+              </button>
+            )}
           </div>
         )}
       </main>

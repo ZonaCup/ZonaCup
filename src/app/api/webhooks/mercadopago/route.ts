@@ -25,15 +25,62 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No external reference' }, { status: 400 });
     }
 
-    const { registrationId, tournamentId, userId } = JSON.parse(externalRef);
+    const parsedReference = JSON.parse(externalRef);
 
     const supabase = createAdminSupabase();
+    const normalizedStatus = status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'pending';
+
+    if (parsedReference.type === 'pro_membership') {
+      const { userId } = parsedReference;
+
+      if (!userId) {
+        return NextResponse.json({ error: 'Missing user ID' }, { status: 400 });
+      }
+
+      if (normalizedStatus === 'approved') {
+        const nextExpiration = new Date();
+        nextExpiration.setMonth(nextExpiration.getMonth() + 1);
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            is_pro: true,
+            pro_expires_at: nextExpiration.toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (profileError) {
+          console.error('Profile PRO update error:', profileError);
+          return NextResponse.json({ error: 'DB error' }, { status: 500 });
+        }
+      }
+
+      await supabase.from('payments').insert({
+        user_id: userId,
+        amount: paymentInfo.transaction_amount,
+        currency: paymentInfo.currency_id,
+        provider: 'mercadopago',
+        provider_payment_id: String(paymentId),
+        status: normalizedStatus,
+        metadata: {
+          payment_type: 'pro_membership',
+          mp_status: paymentInfo.status,
+          mp_status_detail: paymentInfo.status_detail,
+          mp_payment_method: paymentInfo.payment_method_id,
+        },
+      });
+
+      return NextResponse.json({ received: true, status });
+    }
+
+    const { registrationId, tournamentId, userId } = parsedReference;
 
     // Update registration payment status
     const { error: regError } = await supabase
       .from('registrations')
       .update({
-        payment_status: status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'pending',
+        payment_status: normalizedStatus,
         payment_id: String(paymentId),
         amount_paid: paymentInfo.transaction_amount,
         currency: paymentInfo.currency_id,
@@ -53,8 +100,10 @@ export async function POST(request: NextRequest) {
       currency: paymentInfo.currency_id,
       provider: 'mercadopago',
       provider_payment_id: String(paymentId),
-      status: status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'pending',
+      status: normalizedStatus,
       metadata: {
+        payment_type: parsedReference.type || 'tournament_registration',
+        tournamentId,
         mp_status: paymentInfo.status,
         mp_status_detail: paymentInfo.status_detail,
         mp_payment_method: paymentInfo.payment_method_id,

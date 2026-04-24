@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     q: '¿Necesito un rango mínimo?',
-    a: 'Depende del torneo. Los Weekly Open no tienen requisito. Algunos torneos especiales tienen tope máximo (ej: Underdog Night, máx Platino). Cada torneo lo aclara antes de inscribirte.',
+    a: 'Depende del torneo. Los Weekly Open no tienen requisito. Algunos torneos especiales tienen tope máximo y minimo (ej: bronze/Oro). Cada torneo lo aclara antes de inscribirte.',
   },
   {
     q: '¿Cómo controlan el cheating?',
@@ -23,11 +23,11 @@ const faqs = [
   },
   {
     q: '¿Qué pasa si mi compañero no aparece?',
-    a: 'Tenés 15 minutos post check-in para encontrar reemplazo. Si no, se te reembolsa el 100% de la inscripción. Tu compañero que no apareció pierde Integrity Score.',
+    a: 'Tenés 15 minutos post check-in para encontrar reemplazo. Si no, no hay rembolso ya que tenes tu lugar asegurado y ocupado para otro integrante que quiera participar. Tu compañero que no apareció pierde Integrity Score.',
   },
   {
     q: '¿Puedo jugar desde Chile, Perú o Uruguay?',
-    a: 'Sí. Zona Cup opera en Argentina, Chile, Perú y Uruguay. Los premios se pagan en la moneda o pasarela local de cada país. Los rankings son unificados para toda LATAM.',
+    a: 'Sí. Zona Cup opera en Argentina, Chile, Perú y Uruguay. Los premios se pagan en la moneda o pasarela local de cada país, vp, skins depende del premio aclarado con anticipacion. Los rankings son unificados para toda LATAM.',
   },
 ];
 
