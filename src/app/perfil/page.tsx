@@ -22,6 +22,58 @@ type Invite = {
   } | null;
 };
 
+type RiotStats = {
+  account: {
+    puuid: string;
+    gameName: string;
+    tagLine: string;
+  };
+  summary: {
+    matches: number;
+    wins: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    score: number;
+    headshots: number;
+    bodyshots: number;
+    legshots: number;
+    winRate: number;
+    kd: number;
+    hsRate: number;
+    averageKills: number;
+    averageScore: number;
+  };
+  topAgents: Array<{
+    agentId: string;
+    agentName: string;
+    matches: number;
+    wins: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    score: number;
+    winRate: number;
+    kd: number;
+    hsRate: number;
+    averageKills: number;
+    averageScore: number;
+  }>;
+  recentMatches: Array<{
+    matchId: string | null;
+    map: string | null;
+    startedAt: number | null;
+    mode: string | null;
+    agentId: string;
+    agentName: string;
+    won: boolean;
+    kills: number;
+    deaths: number;
+    assists: number;
+    score: number;
+  }>;
+};
+
 export default function PerfilPage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -35,6 +87,14 @@ export default function PerfilPage() {
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
   const [activatingPro, setActivatingPro] = useState(false);
   const [proPaymentStatus, setProPaymentStatus] = useState<string | null>(null);
+  const [riotStatus, setRiotStatus] = useState<string | null>(null);
+  const [riotMessage, setRiotMessage] = useState<string | null>(null);
+  const [riotConfigured, setRiotConfigured] = useState(false);
+  const [loadingRiotConfig, setLoadingRiotConfig] = useState(true);
+  const [riotStats, setRiotStats] = useState<RiotStats | null>(null);
+  const [loadingRiotStats, setLoadingRiotStats] = useState(false);
+  const [riotStatsError, setRiotStatsError] = useState<string | null>(null);
+  const [disconnectingRiot, setDisconnectingRiot] = useState(false);
   const [isDirty, setIsDirty] = useState(false); // rastrea si hay cambios sin guardar
 
   const supabase = useMemo(() => createClient(), []);
@@ -42,6 +102,16 @@ export default function PerfilPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setProPaymentStatus(params.get('pro'));
+    setRiotStatus(params.get('riot'));
+    setRiotMessage(params.get('message'));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/riot/status', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((data) => setRiotConfigured(Boolean(data.configured)))
+      .catch(() => setRiotConfigured(false))
+      .finally(() => setLoadingRiotConfig(false));
   }, []);
 
   useEffect(() => {
@@ -68,6 +138,10 @@ export default function PerfilPage() {
         setRiotTag(p.riot_tag || '');
         setCountry(p.country || 'AR');
         setRank(p.rank || '');
+
+        if (p.riot_id && p.riot_tag) {
+          void loadRiotStats();
+        }
       }
     });
   }, [supabase]);
@@ -123,6 +197,59 @@ export default function PerfilPage() {
     setTimeout(() => {setSaving(false); setSaved(false); setIsDirty(false);}, 1000);
   };
 
+  async function loadRiotStats() {
+    setLoadingRiotStats(true);
+    setRiotStatsError(null);
+
+    try {
+      const response = await fetch('/api/riot/stats', { cache: 'no-store' });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudieron cargar las stats');
+      }
+
+      setRiotStats(data);
+    } catch (error) {
+      setRiotStats(null);
+      setRiotStatsError(error instanceof Error ? error.message : 'No se pudieron cargar las stats');
+    } finally {
+      setLoadingRiotStats(false);
+    }
+  }
+
+  function handleConnectRiot() {
+    window.location.href = '/api/riot/connect';
+  }
+
+  async function handleDisconnectRiot() {
+    if (disconnectingRiot) return;
+
+    setDisconnectingRiot(true);
+    try {
+      const response = await fetch('/api/riot/disconnect', {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo desvincular la cuenta Riot');
+      }
+
+      setRiotId('');
+      setRiotTag('');
+      setRiotStats(null);
+      setRiotStatsError(null);
+      setProfile((current: any) => current ? { ...current, riot_id: null, riot_tag: null } : current);
+      setRiotStatus('disconnected');
+      setRiotMessage(null);
+    } catch (error) {
+      setRiotStatsError(error instanceof Error ? error.message : 'No se pudo desvincular la cuenta Riot');
+    } finally {
+      setDisconnectingRiot(false);
+    }
+  }
+
   async function handleInviteResponse(inviteId: string, action: 'accept' | 'reject') {
     setRespondingInviteId(inviteId);
     const res = await fetch(`/api/team-invites/${inviteId}`, {
@@ -171,6 +298,18 @@ export default function PerfilPage() {
         {proPaymentStatus === 'failure' && (
           <div className="mb-8 rounded border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">
             El pago no se completo. Si queres, podes volver a intentarlo ahora.
+          </div>
+        )}
+
+        {riotStatus === 'connected' && (
+          <div className="mb-8 rounded border border-green-400/30 bg-green-400/10 px-4 py-3 text-sm text-green-300">
+            Cuenta de Riot vinculada correctamente. Tu Riot ID verificado ya quedo asociado al perfil.
+          </div>
+        )}
+
+        {riotStatus && riotStatus !== 'connected' && (
+          <div className="mb-8 rounded border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">
+            {riotMessage || 'La vinculacion con Riot necesita revision. Revisemos la configuracion y lo dejamos fino.'}
           </div>
         )}
 
@@ -226,6 +365,45 @@ export default function PerfilPage() {
             <div>
               <div className="text-lg font-semibold text-ivory">{user.user_metadata?.full_name || 'Jugador'}</div>
               <div className="text-sm text-ash">Conectado con Discord</div>
+            </div>
+          </div>
+
+          <div className="rounded border border-white/8 bg-bg-deep p-4 md:p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-ivory">Vinculacion Riot oficial</div>
+                <div className="text-xs text-ash mt-1">
+                  Solo VALORANT. El jugador autoriza compartir su cuenta para mostrar stats y verificar identidad competitiva.
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleConnectRiot}
+                  disabled={!riotConfigured || loadingRiotConfig}
+                  className="btn-fire !py-2.5 !px-4 !text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {riotId && riotTag ? 'Actualizar desde Riot' : 'Vincular cuenta Riot'}
+                </button>
+                {(riotId || riotTag) && (
+                  <button
+                    onClick={handleDisconnectRiot}
+                    disabled={disconnectingRiot}
+                    className="btn-ghost !py-2.5 !px-4 !text-xs"
+                  >
+                    {disconnectingRiot ? 'Desvinculando...' : 'Desvincular'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 text-xs text-ash">
+              {!riotConfigured && !loadingRiotConfig ? (
+                <>Falta terminar la configuracion segura de Riot en el servidor antes de habilitar esta vinculacion.</>
+              ) : riotId && riotTag ? (
+                <>Cuenta actual: <span className="text-ivory">{riotId}#{riotTag}</span></>
+              ) : (
+                <>Todavia no hay una cuenta Riot vinculada. Mientras tanto, podes seguir cargando datos manualmente.</>
+              )}
             </div>
           </div>
 
@@ -319,6 +497,117 @@ export default function PerfilPage() {
             )}
           </div>
         )}
+
+        <div className="mt-8">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h2 className="font-display text-lg text-ivory tracking-wider uppercase">VALORANT oficial</h2>
+            {(riotId && riotTag) && (
+              <button onClick={loadRiotStats} disabled={loadingRiotStats} className="btn-ghost !py-2 !px-4 !text-xs">
+                {loadingRiotStats ? 'Actualizando...' : 'Actualizar stats'}
+              </button>
+            )}
+          </div>
+
+          {!riotId || !riotTag ? (
+            <div className="card p-6 text-sm text-ash">
+              {riotConfigured
+                ? 'Vincula tu cuenta Riot para ver tu cuenta verificada y stats oficiales de VALORANT.'
+                : 'La capa de UI ya esta lista, pero faltan las credenciales seguras de Riot en el servidor para habilitar la vinculacion oficial.'}
+            </div>
+          ) : loadingRiotStats ? (
+            <div className="card p-6 text-sm text-ash">Cargando stats oficiales de VALORANT...</div>
+          ) : riotStatsError ? (
+            <div className="card p-6 text-sm text-gold">{riotStatsError}</div>
+          ) : riotStats ? (
+            <div className="space-y-6">
+              <div className="card p-6 md:p-8">
+                <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <div className="section-tag !mb-2">Cuenta verificada</div>
+                    <div className="text-2xl font-display text-ivory">
+                      {riotStats.account.gameName}#{riotStats.account.tagLine}
+                    </div>
+                    <div className="text-xs text-ash mt-2">Resumen calculado sobre tus ultimas {riotStats.summary.matches} partidas encontradas.</div>
+                  </div>
+                  <div className="text-xs text-ash">
+                    K/D {riotStats.summary.kd.toFixed(2)} · HS {riotStats.summary.hsRate.toFixed(1)}% · Winrate {riotStats.summary.winRate.toFixed(1)}%
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+                  <div className="rounded border border-white/8 bg-bg-deep p-4">
+                    <div className="font-display text-2xl text-ivory">{riotStats.summary.matches}</div>
+                    <div className="text-[10px] text-ash tracking-wider uppercase">Partidas</div>
+                  </div>
+                  <div className="rounded border border-white/8 bg-bg-deep p-4">
+                    <div className="font-display text-2xl text-ivory">{riotStats.summary.wins}</div>
+                    <div className="text-[10px] text-ash tracking-wider uppercase">Victorias</div>
+                  </div>
+                  <div className="rounded border border-white/8 bg-bg-deep p-4">
+                    <div className="font-display text-2xl text-ivory">{riotStats.summary.averageKills.toFixed(1)}</div>
+                    <div className="text-[10px] text-ash tracking-wider uppercase">Kills promedio</div>
+                  </div>
+                  <div className="rounded border border-white/8 bg-bg-deep p-4">
+                    <div className="font-display text-2xl text-ivory">{riotStats.summary.hsRate.toFixed(1)}%</div>
+                    <div className="text-[10px] text-ash tracking-wider uppercase">Headshot rate</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card p-6 md:p-8">
+                <div className="text-sm font-semibold text-ivory mb-4">Agentes mas jugados</div>
+                <div className="space-y-3">
+                  {riotStats.topAgents.length === 0 ? (
+                    <div className="text-sm text-ash">Todavia no encontramos agentes para mostrar.</div>
+                  ) : riotStats.topAgents.map((agent) => (
+                    <div key={agent.agentId} className="rounded border border-white/8 bg-bg-deep p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-ivory">{agent.agentName}</div>
+                          <div className="text-xs text-ash mt-1">
+                            {agent.matches} partidas · {agent.winRate.toFixed(1)}% WR · K/D {agent.kd.toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="text-right text-xs text-ash">
+                          <div>{agent.averageKills.toFixed(1)} kills</div>
+                          <div>{agent.hsRate.toFixed(1)}% HS</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card p-6 md:p-8">
+                <div className="text-sm font-semibold text-ivory mb-4">Partidas recientes</div>
+                <div className="space-y-3">
+                  {riotStats.recentMatches.length === 0 ? (
+                    <div className="text-sm text-ash">No hay partidas recientes para mostrar.</div>
+                  ) : riotStats.recentMatches.slice(0, 5).map((match) => (
+                    <div key={match.matchId || `${match.agentId}-${match.startedAt}`} className="rounded border border-white/8 bg-bg-deep p-4 flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-semibold text-ivory">
+                          {match.agentName} · {match.map || 'Mapa'}
+                        </div>
+                        <div className="text-xs text-ash mt-1">
+                          {match.won ? 'Victoria' : 'Derrota'} · {match.kills}/{match.deaths}/{match.assists}
+                        </div>
+                      </div>
+                      <div className="text-xs text-ash text-right">
+                        <div>Score {match.score}</div>
+                        <div>{match.mode || 'Modo'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="card p-6 text-sm text-ash">
+              Vincula tu cuenta Riot y apretá actualizar para traer stats oficiales de VALORANT.
+            </div>
+          )}
+        </div>
       </main>
       <Footer />
     </>
